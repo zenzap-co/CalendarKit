@@ -52,9 +52,16 @@ public struct DaySymbolsStyle {
     public init() {}
 }
 
+public enum SwipeLabelPosition {
+    case inline
+    case top
+}
+
 public struct SwipeLabelStyle {
     public var textColor = SystemColors.label
     public var font = UIFont.systemFont(ofSize: 15)
+    public var position: SwipeLabelPosition = .inline
+    public var textAlignment: NSTextAlignment = .center
     public init() {}
 }
 

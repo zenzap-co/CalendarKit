@@ -27,7 +27,6 @@ public class DayView: UIView, TimelinePagerViewDelegate {
     /// Hides or shows header view
     public var isHeaderViewVisible = true {
         didSet {
-            headerHeight = isHeaderViewVisible ? DayView.headerVisibleHeight : 0
             dayHeaderView.isHidden = !isHeaderViewVisible
             setNeedsLayout()
             configureLayout()
@@ -38,8 +37,17 @@ public class DayView: UIView, TimelinePagerViewDelegate {
         timelinePagerView.timelineScrollOffset
     }
     
-    private static let headerVisibleHeight: Double = 88
-    public var headerHeight: Double = headerVisibleHeight
+    private var headerVisibleHeight: Double {
+        guard isHeaderViewVisible else {
+            return 0
+        }
+        switch style.header.swipeLabel.position {
+        case .inline:
+            return 88
+        case .top:
+            return 140
+        }
+    }
     
     public var autoScrollToFirstEvent: Bool {
         get {
@@ -72,6 +80,8 @@ public class DayView: UIView, TimelinePagerViewDelegate {
     }
     
     private var style = CalendarStyle()
+    
+    private var dayHeaderHeightConstraint: NSLayoutConstraint?
     
     public init(calendar: Calendar = Calendar.autoupdatingCurrent) {
         self.calendar = calendar
@@ -115,10 +125,10 @@ public class DayView: UIView, TimelinePagerViewDelegate {
         dayHeaderView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor).isActive = true
         dayHeaderView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor).isActive = true
         dayHeaderView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor).isActive = true
-        let heightConstraint = dayHeaderView.heightAnchor.constraint(equalToConstant: headerHeight)
+        let heightConstraint = dayHeaderView.heightAnchor.constraint(equalToConstant: headerVisibleHeight)
         heightConstraint.priority = .defaultLow
         heightConstraint.isActive = true
-
+        dayHeaderHeightConstraint = heightConstraint
         timelinePagerView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor).isActive = true
         timelinePagerView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor).isActive = true
         timelinePagerView.topAnchor.constraint(equalTo: dayHeaderView.bottomAnchor).isActive = true
@@ -129,6 +139,8 @@ public class DayView: UIView, TimelinePagerViewDelegate {
         style = newStyle
         dayHeaderView.updateStyle(style.header)
         timelinePagerView.updateStyle(style.timeline)
+        dayHeaderHeightConstraint?.constant = headerVisibleHeight
+        dayHeaderView.layoutIfNeeded()
     }
     
     public func timelinePanGestureRequire(toFail gesture: UIGestureRecognizer) {

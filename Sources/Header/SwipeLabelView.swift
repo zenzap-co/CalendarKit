@@ -73,6 +73,7 @@ public final class SwipeLabelView: UIView, DayViewStateUpdating {
         labels.forEach { label in
             label.textColor = style.textColor
             label.font = style.font
+            label.textAlignment = style.textAlignment
         }
     }
 

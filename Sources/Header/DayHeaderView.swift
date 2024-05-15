@@ -20,7 +20,14 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
     private var currentWeekdayIndex = -1
 
     private var daySymbolsViewHeight: Double = 20
-    private var pagingScrollViewHeight: Double = 40
+    private var pagingScrollViewHeight: Double {
+        switch style.swipeLabel.position {
+        case .inline:
+            return 40
+        case .top:
+            return 48
+        }
+    }
     private var swipeLabelViewHeight: Double = 20
 
     private let daySymbolsView: DaySymbolsView
@@ -104,16 +111,29 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
 
     override public func layoutSubviews() {
         super.layoutSubviews()
-        daySymbolsView.frame = CGRect(origin: .zero,
-                                      size: CGSize(width: bounds.width, height: daySymbolsViewHeight))
-        pagingViewController.view?.frame = CGRect(origin: CGPoint(x: 0, y: daySymbolsViewHeight),
-                                                  size: CGSize(width: bounds.width, height: pagingScrollViewHeight))
-        swipeLabelView.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - 10 - swipeLabelViewHeight),
-                                      size: CGSize(width: bounds.width, height: swipeLabelViewHeight))
-
         let separatorHeight = 1 / UIScreen.main.scale
-        separator.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - separatorHeight),
-                                 size: CGSize(width: bounds.width, height: separatorHeight))
+        switch style.swipeLabel.position {
+        case .inline:
+            daySymbolsView.frame = CGRect(origin: .zero,
+                                          size: CGSize(width: bounds.width, height: daySymbolsViewHeight))
+            pagingViewController.view?.frame = CGRect(origin: CGPoint(x: 0, y: daySymbolsViewHeight),
+                                                      size: CGSize(width: bounds.width, height: pagingScrollViewHeight))
+            swipeLabelView.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - 10 - swipeLabelViewHeight),
+                                          size: CGSize(width: bounds.width, height: swipeLabelViewHeight))
+            separator.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - separatorHeight),
+                                     size: CGSize(width: bounds.width, height: separatorHeight))
+        case .top:
+            swipeLabelView.frame = CGRect(origin: CGPoint(x: 24, y: 22),
+                                          size: CGSize(width: bounds.width - 24, height: swipeLabelViewHeight))
+            daySymbolsView.frame = CGRect(origin: CGPoint(x: 0, y: swipeLabelView.frame.maxY + 20),
+                                          size: CGSize(width: bounds.width, height: daySymbolsViewHeight))
+            pagingViewController.view?.frame = CGRect(origin: CGPoint(x: 0, y: daySymbolsView.frame.maxY + 4),
+                                                      size: CGSize(width: bounds.width, height: pagingScrollViewHeight))
+            
+            separator.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - separatorHeight),
+                                     size: CGSize(width: bounds.width, height: separatorHeight))
+        }
+        
     }
 
     public func transitionToHorizontalSizeClass(_ sizeClass: UIUserInterfaceSizeClass) {
