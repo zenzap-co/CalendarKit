@@ -49,6 +49,7 @@ public struct DaySymbolsStyle {
     public var weekendColor = SystemColors.secondaryLabel
     public var weekDayColor = SystemColors.label
     public var font = UIFont.systemFont(ofSize: 10)
+    public var useShortDaySymbols = true
     public init() {}
 }
 
