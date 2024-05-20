@@ -64,6 +64,10 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
         let contains = eventFrame.contains(position)
         return contains
     }
+    
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return otherGestureRecognizer != panGestureRecognizer
+    }
 
     public weak var state: DayViewState? {
         willSet(newValue) {
