@@ -15,38 +15,38 @@ public protocol TimelinePagerViewDelegate: AnyObject {
 }
 
 public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScrollViewDelegate, DayViewStateUpdating, UIPageViewControllerDataSource, UIPageViewControllerDelegate, TimelineViewDelegate {
-
+    
     public weak var dataSource: EventDataSource?
     public weak var delegate: TimelinePagerViewDelegate?
-
+    
     public private(set) var calendar: Calendar = Calendar.autoupdatingCurrent
     public var eventEditingSnappingBehavior: EventEditingSnappingBehavior {
         didSet {
             updateEventEditingSnappingBehavior()
         }
     }
-
+    
     public var timelineScrollOffset: CGPoint {
         // Any view is fine as they are all synchronized
         let offset = (currentTimeline)?.container.contentOffset
         return offset ?? CGPoint()
     }
-
+    
     private var currentTimeline: TimelineContainerController? {
         pagingViewController.viewControllers?.first as? TimelineContainerController
     }
-
+    
     public var autoScrollToFirstEvent = false
     public var maintainsTimelineOffset = true
-
+    
     private var pagingViewController = UIPageViewController(transitionStyle: .scroll,
                                                             navigationOrientation: .horizontal,
                                                             options: nil)
     private var style = TimelineStyle()
-
+    
     private lazy var panGestureRecognizer = UIPanGestureRecognizer(target: self,
                                                                    action: #selector(handlePanGesture(_:)))
-
+    
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                   shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         if otherGestureRecognizer.view is EventResizeHandleView {
@@ -54,7 +54,7 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
         }
         return true
     }
-
+    
     public override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard gestureRecognizer == panGestureRecognizer else {
             return super.gestureRecognizerShouldBegin(gestureRecognizer)
@@ -67,7 +67,7 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
     }
     
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        return otherGestureRecognizer != panGestureRecognizer
+        return otherGestureRecognizer != panGestureRecognizer  && otherGestureRecognizer.view is UIScrollView == false
     }
 
     public weak var state: DayViewState? {
