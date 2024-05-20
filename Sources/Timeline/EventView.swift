@@ -40,8 +40,6 @@ open class EventView: UIView {
             addSubview(handle)
         }
         
-        layer.cornerRadius = 4
-        layer.masksToBounds = true
     }
     
     public func updateWithDescriptor(event: EventDescriptor) {

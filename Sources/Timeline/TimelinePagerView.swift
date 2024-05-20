@@ -37,6 +37,7 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
     }
 
     public var autoScrollToFirstEvent = false
+    public var maintainsTimelineOffset = true
 
     private var pagingViewController = UIPageViewController(transitionStyle: .scroll,
                                                             navigationOrientation: .horizontal,
@@ -319,6 +320,8 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
                 prevOffset = newCoord
                 accentDateForEditedEventView(eventHeight: tag == 0 ? 0 : suggestedEventHeight)
             }
+            
+            pendingEvent.setNeedsDisplay()
         }
 
         if sender.state == .ended {
@@ -433,7 +436,10 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
         let newController = configureTimelineController(date: newDate)
 
         delegate?.timelinePager(timelinePager: self, willMoveTo: newDate)
-
+        if maintainsTimelineOffset, let offset = currentTimeline?.container.contentOffset {
+            newController.pendingContentOffset = offset
+        }
+        
         func completionHandler(_ completion: Bool) {
             DispatchQueue.main.async { [self] in
                 // Fix for the UIPageViewController issue: https://stackoverflow.com/questions/12939280/uipageviewcontroller-navigates-to-wrong-page-with-scroll-transition-style
