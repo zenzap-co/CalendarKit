@@ -8,6 +8,13 @@ open class EventView: UIView {
         textView.frame.height
     }
     
+    public private(set) lazy var backgroundView: UIView = {
+        let view = UIView()
+        view.layer.cornerRadius = 4
+        view.layer.masksToBounds = true
+        return view
+    }()
+    
     public private(set) lazy var textView: UITextView = {
         let view = UITextView()
         view.isUserInteractionEnabled = false
@@ -33,6 +40,7 @@ open class EventView: UIView {
     private func configure() {
         clipsToBounds = false
         color = tintColor
+        addSubview(backgroundView)
         addSubview(textView)
         
         for (idx, handle) in eventResizeHandles.enumerated() {
@@ -54,11 +62,14 @@ open class EventView: UIView {
             textView.textContainer.lineBreakMode = lineBreakMode
         }
         descriptor = event
-        backgroundColor = event.backgroundColor
+        backgroundView.layer.backgroundColor = event.backgroundColor.cgColor
+        backgroundView.layer.borderWidth = 1
+        backgroundView.layer.borderColor = event.color.cgColor
+        
         color = event.color
         eventResizeHandles.forEach{
             $0.borderColor = event.color
-            $0.isHidden = event.editedEvent == nil
+            $0.isHidden = event.editedEvent == nil || event.editingCanChangeDuration == false
         }
         drawsShadow = event.editedEvent != nil
         setNeedsDisplay()
@@ -96,30 +107,11 @@ open class EventView: UIView {
         return super.hitTest(point, with: event)
     }
     
-    override open func draw(_ rect: CGRect) {
-        super.draw(rect)
-        guard let context = UIGraphicsGetCurrentContext() else {
-            return
-        }
-        context.interpolationQuality = .none
-        context.saveGState()
-        context.setStrokeColor(color.cgColor)
-        context.setLineWidth(3)
-        context.translateBy(x: 0, y: 0.5)
-        let leftToRight = UIView.userInterfaceLayoutDirection(for: semanticContentAttribute) == .leftToRight
-        let x: Double = leftToRight ? 0 : frame.width - 1.0  // 1 is the line width
-        let y: Double = 0
-        context.beginPath()
-        context.move(to: CGPoint(x: x, y: y))
-        context.addLine(to: CGPoint(x: x, y: (bounds).height))
-        context.strokePath()
-        context.restoreGState()
-    }
-    
     private var drawsShadow = false
     
     override open func layoutSubviews() {
         super.layoutSubviews()
+        backgroundView.frame = bounds
         textView.frame = {
             if UIView.userInterfaceLayoutDirection(for: semanticContentAttribute) == .rightToLeft {
                 return CGRect(x: bounds.minX, y: bounds.minY, width: bounds.width - 3, height: bounds.height)

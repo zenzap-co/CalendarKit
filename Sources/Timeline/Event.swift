@@ -11,6 +11,7 @@ public final class Event: EventDescriptor {
             updateColors()
         }
     }
+    public var editingCanChangeDuration = true
     public var backgroundColor = SystemColors.systemBlue.withAlphaComponent(0.3)
     public var textColor = SystemColors.label
     public var font = UIFont.boldSystemFont(ofSize: 12)
