@@ -268,6 +268,35 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
             create(event: editableCopy, animated: animated)
         }
     }
+    
+    public func movePendingEvent(to date: Date) {
+        if let editedEventView, let currentTimeline {
+            
+            var snapped = currentTimeline.timeline.eventEditingSnappingBehavior.nearestDate(to: date)
+            let snappedDay = calendar.dateComponents([.day], from: snapped)
+            let currentTimelineDay = calendar.dateComponents([.day], from: currentTimeline.timeline.date)
+            guard snappedDay.day == currentTimelineDay.day else {
+                return
+            }
+            // if the date's time is after 23:00 snap it to 23:00
+            let snappedHour = calendar.component(.hour, from: snapped)
+            if snappedHour == 23 {
+                let components = calendar.dateComponents([.year, .month, .day], from: snapped)
+                if let newDate = calendar.date(from: components),
+                   let normalizedDate = calendar.date(byAdding: .hour, value: 23, to: newDate) {
+                    snapped = normalizedDate
+                }
+            }
+            var eventFrame = editedEventView.frame
+            eventFrame.origin.y = currentTimeline.timeline.dateToY(snapped) - currentTimeline.container.contentOffset.y
+            UIView.animate(withDuration: 0.2, animations: {
+                editedEventView.frame = eventFrame
+            }, completion: { [weak self] _ in
+                self?.accentDateForEditedEventView()
+                self?.commitEditing()
+            })
+        }
+    }
 
     private var prevOffset: CGPoint = .zero
     @objc func handlePanGesture(_ sender: UIPanGestureRecognizer) {
