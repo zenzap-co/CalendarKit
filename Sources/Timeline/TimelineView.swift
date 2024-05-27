@@ -433,9 +433,20 @@ public final class TimelineView: UIView {
     }
 
     private func recalculateEventLayout() {
+        
+        // group events by their horizontalLayoutRange value
+        let groupedEvents = Dictionary(grouping: regularLayoutAttributes, by: { $0.descriptor.horizontalLayoutRange })
+        // calculate layout for each group
+        for (_, group) in groupedEvents {
+            calculateLayout(for: group)
+        }
+        
+    }
 
+    private func calculateLayout(for group: [EventLayoutAttributes]) {
+        
         // only non allDay events need their frames to be set
-        let sortedEvents = self.regularLayoutAttributes.sorted { (attr1, attr2) -> Bool in
+        let sortedEvents = group.sorted { (attr1, attr2) -> Bool in
             let start1 = attr1.descriptor.dateInterval.start
             let start2 = attr2.descriptor.dateInterval.start
             return start1 < start2
@@ -481,15 +492,19 @@ public final class TimelineView: UIView {
 
         groupsOfEvents.append(overlappingEvents)
         overlappingEvents.removeAll()
-
+        
         for overlappingEvents in groupsOfEvents {
             let totalCount = Double(overlappingEvents.count)
             for (index, event) in overlappingEvents.enumerated() {
+                // adjust calendarWidth for the events's horizontalLayoutRange (a closed range of CGFloat)
+                let adjustedCalendarWidth = calendarWidth * CGFloat(event.descriptor.horizontalLayoutRange.upperBound - event.descriptor.horizontalLayoutRange.lowerBound)
+
                 let startY = dateToY(event.descriptor.dateInterval.start)
                 let endY = dateToY(event.descriptor.dateInterval.end)
                 let floatIndex = Double(index)
-                let x = style.leadingInset + floatIndex / totalCount * calendarWidth
-                let equalWidth = calendarWidth / totalCount
+                let x = style.leadingInset + floatIndex / totalCount * adjustedCalendarWidth +
+                CGFloat(event.descriptor.horizontalLayoutRange.lowerBound) * calendarWidth
+                let equalWidth = adjustedCalendarWidth / totalCount
                 event.frame = CGRect(x: x, y: startY, width: equalWidth, height: endY - startY)
             }
         }

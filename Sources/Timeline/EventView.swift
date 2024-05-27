@@ -15,11 +15,10 @@ open class EventView: UIView {
         return view
     }()
     
-    public private(set) lazy var textView: UITextView = {
-        let view = UITextView()
+    public private(set) lazy var textView: MultilineTopAlignedLabel = {
+        let view = MultilineTopAlignedLabel()
         view.isUserInteractionEnabled = false
         view.backgroundColor = .clear
-        view.isScrollEnabled = false
         return view
     }()
     
@@ -52,14 +51,14 @@ open class EventView: UIView {
     
     public func updateWithDescriptor(event: EventDescriptor) {
         if let attributedText = event.attributedText {
-            textView.attributedText = attributedText
+            textView.label.attributedText = attributedText
         } else {
-            textView.text = event.text
-            textView.textColor = event.textColor
-            textView.font = event.font
+            textView.label.text = event.text
+            textView.label.textColor = event.textColor
+            textView.label.font = event.font
         }
         if let lineBreakMode = event.lineBreakMode {
-            textView.textContainer.lineBreakMode = lineBreakMode
+            textView.label.lineBreakMode = lineBreakMode
         }
         descriptor = event
         backgroundView.layer.backgroundColor = event.backgroundColor.cgColor
@@ -162,5 +161,33 @@ open class EventView: UIView {
             let rect = bounds.insetBy(dx: dx, dy: dx)
             layer.shadowPath = UIBezierPath(rect: rect).cgPath
         }
+    }
+}
+
+public class MultilineTopAlignedLabel: UIView {
+     let label = UILabel()
+    
+    init() {
+        super.init(frame: .zero)
+        
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        
+        addSubview(label)
+        
+        let minimizer = label.bottomAnchor.constraint(equalTo: topAnchor)
+        minimizer.priority = .defaultLow
+        
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: topAnchor),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor),
+            label.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
+            minimizer
+        ])
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }

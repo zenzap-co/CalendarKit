@@ -1,6 +1,7 @@
 import UIKit
 
 public final class Event: EventDescriptor {
+    public var horizontalLayoutRange: ClosedRange<CGFloat> = 0.0...1.0
     public var dateInterval = DateInterval()
     public var isAllDay = false
     public var text = ""

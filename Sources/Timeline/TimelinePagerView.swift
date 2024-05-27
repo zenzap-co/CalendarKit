@@ -269,6 +269,17 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
         }
     }
     
+    public func updatePendingEventHLayoutRange(to range: ClosedRange<CGFloat>) {
+        guard let timeline = currentTimeline?.timeline, let eventView = editedEventView else {
+            return
+        }
+
+        var frame = eventView.frame
+        frame.origin.x = style.leadingInset + range.lowerBound * timeline.calendarWidth
+        frame.size.width = (range.upperBound - range.lowerBound) * timeline.calendarWidth
+        eventView.frame = frame
+    }
+    
     public func movePendingEvent(to date: Date) {
         if let editedEventView, let currentTimeline {
             
