@@ -444,70 +444,111 @@ public final class TimelineView: UIView {
     }
 
     private func calculateLayout(for group: [EventLayoutAttributes]) {
+        guard !group.isEmpty else { return }
         
-        // only non allDay events need their frames to be set
-        let sortedEvents = group.sorted { (attr1, attr2) -> Bool in
-            let start1 = attr1.descriptor.dateInterval.start
-            let start2 = attr2.descriptor.dateInterval.start
-            return start1 < start2
-        }
-
-        var groupsOfEvents = [[EventLayoutAttributes]]()
-        var overlappingEvents = [EventLayoutAttributes]()
-
-        for event in sortedEvents {
-            if overlappingEvents.isEmpty {
-                overlappingEvents.append(event)
-                continue
-            }
-
-            let longestEvent = overlappingEvents.sorted { (attr1, attr2) -> Bool in
-                var period = attr1.descriptor.dateInterval
-                let period1 = period.end.timeIntervalSince(period.start)
-                period = attr2.descriptor.dateInterval
-                let period2 = period.end.timeIntervalSince(period.start)
-
-                return period1 > period2
-            }
-                .first!
-
-            if style.eventsWillOverlap {
-                guard let earliestEvent = overlappingEvents.first?.descriptor.dateInterval.start else { continue }
-                let dateInterval = getDateInterval(date: earliestEvent)
-                if event.descriptor.dateInterval.contains(dateInterval.start) {
-                    overlappingEvents.append(event)
-                    continue
-                }
-            } else {
-                let lastEvent = overlappingEvents.last!
-                if (longestEvent.descriptor.dateInterval.intersects(event.descriptor.dateInterval) && (longestEvent.descriptor.dateInterval.end != event.descriptor.dateInterval.start || style.eventGap <= 0.0)) ||
-                    (lastEvent.descriptor.dateInterval.intersects(event.descriptor.dateInterval) && (lastEvent.descriptor.dateInterval.end != event.descriptor.dateInterval.start || style.eventGap <= 0.0)) {
-                    overlappingEvents.append(event)
-                    continue
-                }
-            }
-            groupsOfEvents.append(overlappingEvents)
-            overlappingEvents = [event]
-        }
-
-        groupsOfEvents.append(overlappingEvents)
-        overlappingEvents.removeAll()
+        // Group events by their horizontalLayoutRange value
+        let groupedEvents = Dictionary(grouping: group) { $0.descriptor.horizontalLayoutRange }
         
-        for overlappingEvents in groupsOfEvents {
-            let totalCount = Double(overlappingEvents.count)
-            for (index, event) in overlappingEvents.enumerated() {
-                // adjust calendarWidth for the events's horizontalLayoutRange (a closed range of CGFloat)
-                let adjustedCalendarWidth = calendarWidth * CGFloat(event.descriptor.horizontalLayoutRange.upperBound - event.descriptor.horizontalLayoutRange.lowerBound)
+        for (_, events) in groupedEvents {
+            // Sort events by start time, and then by end time (reverse order for end time)
+            let sortedEvents = events.sorted {
+                $0.descriptor.dateInterval.start < $1.descriptor.dateInterval.start ||
+                ($0.descriptor.dateInterval.start == $1.descriptor.dateInterval.start && $0.descriptor.dateInterval.end > $1.descriptor.dateInterval.end)
+            }
+            
+            // Group events into columns
+            var columns = [[EventLayoutAttributes]]()
+            var previousHighestEndValue: Date? = nil
+            var isInserted = false
+            
+            for event in sortedEvents {
+                isInserted = false
+                // Check if we need to render a new group of columns
+                if let previousEnd = previousHighestEndValue, event.descriptor.dateInterval.start >= previousEnd {
+                    // Render events in the previous columns
+                    layoutColumns(columns, horizontalRange: event.descriptor.horizontalLayoutRange)
+                    // Reset columns
+                    columns = []
+                    previousHighestEndValue = nil
+                }
+                
+                // Try to insert the event into an existing column
+                for i in 0..<columns.count {
+                    if let lastEvent = columns[i].last, !collisionDetection(lastEvent.descriptor.dateInterval, event.descriptor.dateInterval) {
+                        columns[i].append(event)
+                        isInserted = true
+                        break
+                    }
+                }
+                
+                // If the event does not fit into any existing column, create a new column
+                if !isInserted {
+                    columns.append([event])
+                }
+                
+                // Update the highest end value
+                if previousHighestEndValue == nil || event.descriptor.dateInterval.end > previousHighestEndValue! {
+                    previousHighestEndValue = event.descriptor.dateInterval.end
+                }
+            }
+            
+            // Layout the last group of columns
+            if !columns.isEmpty {
+                layoutColumns(columns, horizontalRange: events.first!.descriptor.horizontalLayoutRange)
+            }
+        }
+    }
 
+    private func layoutColumns(_ columns: [[EventLayoutAttributes]], horizontalRange: ClosedRange<CGFloat>) {
+        let totalCount = Double(columns.count)
+        let adjustedCalendarWidth = calendarWidth * (horizontalRange.upperBound - horizontalRange.lowerBound)
+        let leadingInset = style.leadingInset + CGFloat(horizontalRange.lowerBound) * calendarWidth
+        
+        for (index, column) in columns.enumerated() {
+            let columnWidth = adjustedCalendarWidth / totalCount
+            let columnOffset = Double(index) * columnWidth + Double(leadingInset)
+            
+            for event in column {
                 let startY = dateToY(event.descriptor.dateInterval.start)
                 let endY = dateToY(event.descriptor.dateInterval.end)
-                let floatIndex = Double(index)
-                let x = style.leadingInset + floatIndex / totalCount * adjustedCalendarWidth +
-                CGFloat(event.descriptor.horizontalLayoutRange.lowerBound) * calendarWidth
-                let equalWidth = adjustedCalendarWidth / totalCount
-                event.frame = CGRect(x: x, y: startY, width: equalWidth, height: endY - startY)
+                event.frame = CGRect(x: columnOffset, y: startY, width: columnWidth - style.eventGap, height: endY - startY)
             }
         }
+        
+        // Additional pass to expand events' width
+        for column in columns {
+            for event in column {
+                var frame = event.frame
+                let maxX = Double(leadingInset) + adjustedCalendarWidth
+                var canExpand = true
+                
+                while canExpand && frame.maxX < maxX {
+                    let testFrame = CGRect(x: frame.origin.x, y: frame.origin.y, width: frame.width + 1, height: frame.height)
+                    canExpand = true
+                    
+                    for otherColumn in columns {
+                        for otherEvent in otherColumn {
+                            if otherEvent.frame != event.frame && testFrame.intersects(otherEvent.frame) {
+                                canExpand = false
+                                break
+                            }
+                        }
+                        if !canExpand { break }
+                    }
+                    
+                    if canExpand {
+                        frame.size.width += 1
+                    }
+                }
+                
+                frame.size.width -= 1
+                event.frame = frame
+            }
+        }
+    }
+
+    private func collisionDetection(_ interval1: DateInterval, _ interval2: DateInterval) -> Bool {
+        return interval1.end > interval2.start && interval1.start < interval2.end
     }
 
     private func prepareEventViews() {
