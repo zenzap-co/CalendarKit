@@ -514,6 +514,8 @@ public final class TimelineView: UIView {
                 event.frame = CGRect(x: columnOffset, y: startY, width: columnWidth - style.eventGap, height: endY - startY)
             }
         }
+
+        var expandedEvents = [EventLayoutAttributes]()
         
         // Additional pass to expand events' width
         for column in columns {
@@ -540,11 +542,60 @@ public final class TimelineView: UIView {
                         frame.size.width += 1
                     }
                 }
+
+                if canExpand {
+                    expandedEvents.append(event)
+                }
                 
                 frame.size.width -= 1
                 event.frame = frame
             }
         }
+        
+        // expand groups of events that can take up more space safely
+        expandedEvents.forEach { event in
+            var eventsForWidthDistribution = [EventLayoutAttributes]()
+            var eventIndex = -1
+            var canSearch = true
+            for (index, column) in columns.enumerated().reversed() {
+                guard canSearch else { break }
+                if column.contains(where: { $0.descriptor.id == event.descriptor.id }), eventIndex == -1 {
+                    eventIndex = index
+                    eventsForWidthDistribution.append(event)
+                    continue
+                }
+                if eventIndex != -1 {
+                    var columnIsValid = column.allSatisfy { 
+                        $0.descriptor.dateInterval.start >= event.descriptor.dateInterval.start && 
+                        $0.descriptor.dateInterval.end <= event.descriptor.dateInterval.end ||
+                        $0.descriptor.dateInterval.end <= event.descriptor.dateInterval.start ||
+                        $0.descriptor.dateInterval.start >= event.descriptor.dateInterval.end
+                    }
+                    if !columnIsValid {
+                        canSearch = false
+                    } else {
+                        eventsForWidthDistribution.append(contentsOf: column.filter {
+                            $0.descriptor.dateInterval.start >= event.descriptor.dateInterval.start && 
+                            $0.descriptor.dateInterval.end <= event.descriptor.dateInterval.end
+                        })
+                    }
+                }
+                
+            }
+            if eventsForWidthDistribution.count > 1 {
+                var eventsSorted = eventsForWidthDistribution.sorted(by: { $0.frame.minX < $1.frame.minX })
+                let minX = eventsSorted.first!.frame.minX
+                let maxX = eventsSorted.last!.frame.maxX
+                let width = maxX - minX
+                let columnWidth = width / Double(eventsForWidthDistribution.count)
+                for (index, event) in eventsSorted.enumerated() {
+                    let columnOffset = minX + Double(index) * columnWidth
+                    event.frame = CGRect(x: columnOffset, y: event.frame.minY, width: columnWidth, height: event.frame.height)
+                }
+            }
+        }
+        
+
     }
 
     private func collisionDetection(_ interval1: DateInterval, _ interval2: DateInterval) -> Bool {

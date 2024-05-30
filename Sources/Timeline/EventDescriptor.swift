@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 
 public protocol EventDescriptor: AnyObject {
+    var id: String { get }
     var dateInterval: DateInterval {get set}
     var isAllDay: Bool {get}
     var text: String {get}
@@ -16,4 +17,10 @@ public protocol EventDescriptor: AnyObject {
     var editingCanChangeDuration: Bool { get }
     func makeEditable() -> Self
     func commitEditing()
+}
+
+public extension EventDescriptor where Self: Equatable {
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
