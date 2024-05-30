@@ -557,30 +557,26 @@ public final class TimelineView: UIView {
             var eventsForWidthDistribution = [EventLayoutAttributes]()
             var eventIndex = -1
             var canSearch = true
-            for (index, column) in columns.enumerated().reversed() {
-                guard canSearch else { break }
-                if column.contains(where: { $0.descriptor.id == event.descriptor.id }), eventIndex == -1 {
+            var validEventInterval = event.descriptor.dateInterval
+            outerLoop: for (index, column) in columns.enumerated().reversed() {
+                if eventIndex == -1, column.contains(where: { $0.descriptor.id == event.descriptor.id }) {
                     eventIndex = index
                     eventsForWidthDistribution.append(event)
-                    continue
+                    continue outerLoop
                 }
                 if eventIndex != -1 {
-                    var columnIsValid = column.allSatisfy { 
-                        $0.descriptor.dateInterval.start >= event.descriptor.dateInterval.start && 
-                        $0.descriptor.dateInterval.end <= event.descriptor.dateInterval.end ||
-                        $0.descriptor.dateInterval.end <= event.descriptor.dateInterval.start ||
-                        $0.descriptor.dateInterval.start >= event.descriptor.dateInterval.end
+                    var connectedEvents = column.filter {
+                        $0.descriptor.dateInterval.start >= validEventInterval.start &&
+                        $0.descriptor.dateInterval.end <= validEventInterval.end
                     }
-                    if !columnIsValid {
-                        canSearch = false
-                    } else {
-                        eventsForWidthDistribution.append(contentsOf: column.filter {
-                            $0.descriptor.dateInterval.start >= event.descriptor.dateInterval.start && 
-                            $0.descriptor.dateInterval.end <= event.descriptor.dateInterval.end
-                        })
+                    guard connectedEvents.isEmpty == false else {
+                        break outerLoop
                     }
+                    eventsForWidthDistribution.append(contentsOf: connectedEvents)
+                    let allStartTimes = connectedEvents.map { $0.descriptor.dateInterval.start }
+                    let allEndTimes = connectedEvents.map { $0.descriptor.dateInterval.end }
+                    validEventInterval = DateInterval(start: allStartTimes.min()!, end: allEndTimes.max()!)
                 }
-                
             }
             if eventsForWidthDistribution.count > 1 {
                 var eventsSorted = eventsForWidthDistribution.sorted(by: { $0.frame.minX < $1.frame.minX })
