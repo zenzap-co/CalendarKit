@@ -5,8 +5,9 @@ let package = Package(
     name: "CalendarKit",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v11),
-        .tvOS(.v11)
+        .iOS(.v13),
+        .tvOS(.v11),
+        .macCatalyst(.v13)
     ],
     products: [
         .library(
