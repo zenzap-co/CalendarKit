@@ -63,6 +63,7 @@ public struct SwipeLabelStyle {
     public var font = UIFont.systemFont(ofSize: 15)
     public var position: SwipeLabelPosition = .inline
     public var textAlignment: NSTextAlignment = .center
+    public var navigationArrowsVisible = false
     public init() {}
 }
 

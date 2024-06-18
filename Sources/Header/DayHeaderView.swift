@@ -29,6 +29,7 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
         }
     }
     private var swipeLabelViewHeight: Double = 20
+    private var navigationArrowsSize: Double = 20
 
     private let daySymbolsView: DaySymbolsView
     private var pagingViewController = UIPageViewController(transitionStyle: .scroll,
@@ -39,6 +40,28 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
         let separator = UIView()
         separator.backgroundColor = SystemColors.systemSeparator
         return separator
+    }()
+
+    private lazy var backwardArrowButton: UIButton = {
+        let button = UIButton(frame: CGRect(origin: .zero, size: CGSize(width: navigationArrowsSize,
+                                                                        height: navigationArrowsSize)))
+        button.setImage(UIImage(systemName: "chevron.backward")?.withRenderingMode(.alwaysTemplate), for: .normal)
+        button.imageView?.tintColor = .label
+        button.backgroundColor = .systemBackground
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.isHidden = true
+        return button
+    }()
+
+    private lazy var forwardArrowButton: UIButton = {
+        let button = UIButton(frame: CGRect(origin: .zero, size: CGSize(width: navigationArrowsSize, 
+                                                                        height: navigationArrowsSize)))
+        button.setImage(UIImage(systemName: "chevron.forward")?.withRenderingMode(.alwaysTemplate), for: .normal)
+        button.imageView?.tintColor = .label
+        button.backgroundColor = .systemBackground
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.isHidden = true
+        return button
     }()
 
     public init(calendar: Calendar) {
@@ -57,9 +80,39 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
     }
 
     private func configure() {
-        [daySymbolsView, swipeLabelView, separator].forEach(addSubview)
+        [daySymbolsView, swipeLabelView, backwardArrowButton, forwardArrowButton, separator].forEach(addSubview)
         backgroundColor = style.backgroundColor
         configurePagingViewController()
+        
+        let backwardTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(goBackward))
+        backwardTapGestureRecognizer.numberOfTapsRequired = 1
+        backwardArrowButton.addGestureRecognizer(backwardTapGestureRecognizer)
+        
+        let forwardTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(goForward))
+        forwardTapGestureRecognizer.numberOfTapsRequired = 1
+        forwardArrowButton.addGestureRecognizer(forwardTapGestureRecognizer)
+    }
+    
+    @objc private func goBackward() {
+        guard let selector = pagingViewController.children.first as? DaySelectorController else {
+            return
+        }
+
+        let previousDate = calendar.date(byAdding: .weekOfYear, value: -1, to: selector.startDate)!
+        let controller = makeSelectorController(startDate: previousDate)
+
+        pagingViewController.setViewControllers([controller], direction: .reverse, animated: true)
+    }
+    
+    @objc private func goForward() {
+        guard let selector = pagingViewController.children.first as? DaySelectorController else {
+            return
+        }
+
+        let nextDate = calendar.date(byAdding: .weekOfYear, value: 1, to: selector.startDate)!
+        let controller = makeSelectorController(startDate: nextDate)
+
+        pagingViewController.setViewControllers([controller], direction: .forward, animated: true)
     }
 
     private func configurePagingViewController() {
@@ -124,7 +177,19 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
                                      size: CGSize(width: bounds.width, height: separatorHeight))
         case .top:
             swipeLabelView.frame = CGRect(origin: CGPoint(x: 24, y: 22),
-                                          size: CGSize(width: bounds.width - 24, height: swipeLabelViewHeight))
+                                          size: CGSize(width: bounds.width - 24 - forwardArrowButton.bounds.width - 20 - backwardArrowButton.bounds.width,
+                                                       height: swipeLabelViewHeight))
+            if style.swipeLabel.navigationArrowsVisible {
+                forwardArrowButton.isHidden = false
+                backwardArrowButton.isHidden = false
+                
+                forwardArrowButton.frame = CGRect(origin: CGPoint(x: bounds.width - 24 - forwardArrowButton.bounds.width,
+                                                                  y: 22),
+                                                  size: forwardArrowButton.bounds.size)
+                backwardArrowButton.frame = CGRect(origin: CGPoint(x: bounds.width - 24 - forwardArrowButton.bounds.width - backwardArrowButton.bounds.width - 20,
+                                                                   y: 22),
+                                                   size: backwardArrowButton.bounds.size)
+            }
             daySymbolsView.frame = CGRect(origin: CGPoint(x: 0, y: swipeLabelView.frame.maxY + 20),
                                           size: CGSize(width: bounds.width, height: daySymbolsViewHeight))
             pagingViewController.view?.frame = CGRect(origin: CGPoint(x: 0, y: daySymbolsView.frame.maxY + 4),
@@ -133,7 +198,6 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
             separator.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - separatorHeight),
                                      size: CGSize(width: bounds.width, height: separatorHeight))
         }
-        
     }
 
     public func transitionToHorizontalSizeClass(_ sizeClass: UIUserInterfaceSizeClass) {
