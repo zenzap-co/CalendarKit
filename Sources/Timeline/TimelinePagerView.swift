@@ -277,6 +277,11 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
         var frame = eventView.frame
         frame.origin.x = style.leadingInset + range.lowerBound * timeline.calendarWidth
         frame.size.width = (range.upperBound - range.lowerBound) * timeline.calendarWidth
+        
+        if UIView.userInterfaceLayoutDirection(for: semanticContentAttribute) == .rightToLeft {
+            frame.origin.x = bounds.width - frame.origin.x - frame.size.width
+        }
+        
         eventView.frame = frame
     }
     
@@ -395,7 +400,7 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
                                   timeline: timeline)
                 let snapped = timeline.eventEditingSnappingBehavior.nearestDate(to: ytd)
                 let leftToRight = UIView.userInterfaceLayoutDirection(for: semanticContentAttribute) == .leftToRight
-                let x = leftToRight ? style.leadingInset : 0
+                let x = leftToRight ? style.leadingInset : bounds.width - style.leadingInset - editedEventView.frame.width
 
                 var eventFrame = editedEventView.frame
                 eventFrame.origin.x = x
